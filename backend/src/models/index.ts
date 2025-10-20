@@ -9,7 +9,7 @@ import { Notification } from "./notification.model";
 export { User, Format, Completion, Validacion, Notification };
 
 // Función para sincronizar todos los modelos
-export const syncModels = async () => {
+export const syncModels = async (): Promise<void> => {
   try {
     // Sincronizar todos los modelos con la base de datos sin alterar estructura existente
     await sequelize.sync({ force: false, alter: false });
@@ -18,4 +18,15 @@ export const syncModels = async () => {
     console.error("❌ Error sincronizando modelos:", error);
     throw error;
   }
+};
+
+// Exportar por defecto para compatibilidad
+export default {
+  User,
+  Format,
+  Completion,
+  Validacion,
+  Notification,
+  syncModels,
+  sequelize
 };
