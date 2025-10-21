@@ -8,7 +8,7 @@
     "start": "node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:migrate": "sequelize db:migrate",
-    "db:seed": "sequelize db:seed:all"
+    "db:seed": "ts-node src/seedData.ts"
   },
   "keywords": [],
   "author": "",

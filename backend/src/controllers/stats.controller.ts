@@ -7,11 +7,15 @@ import { Op } from 'sequelize';
 
 export const getStats = async (req: Request, res: Response) => {
   try {
+    console.log('📊 Obteniendo estadísticas...');
+    
     // Obtener estadísticas básicas
     const totalUsers = await User.count();
     const totalFormats = await Format.count();
     const totalCompletions = await Completion.count();
     const totalValidations = await Validacion.count();
+
+    console.log('✅ Estadísticas básicas:', { totalUsers, totalFormats, totalCompletions, totalValidations });
 
     // Estadísticas por estado de completions
     const completionsByStatusRaw = await Completion.findAll({
@@ -22,6 +26,8 @@ export const getStats = async (req: Request, res: Response) => {
       group: ['estado'],
       raw: true
     });
+
+    console.log('✅ Completions por estado:', completionsByStatusRaw);
 
     // Mapear estados a nombres más descriptivos
     const statusLabels: { [key: string]: string } = {
@@ -55,7 +61,10 @@ export const getStats = async (req: Request, res: Response) => {
       raw: true
     });
 
+    console.log('✅ Validations por estado:', validationsByStatus);
+
     // Actividad reciente (últimos 5 registros)
+    console.log('📋 Obteniendo actividad reciente...');
     const recentActivity = await Completion.findAll({
       limit: 5,
       order: [['createdAt', 'DESC']],
@@ -71,13 +80,15 @@ export const getStats = async (req: Request, res: Response) => {
       ]
     });
 
+    console.log('✅ Actividad reciente obtenida:', recentActivity.length, 'registros');
+
     // Estadísticas por mes (últimos 6 meses)
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
     const monthlyCompletions = await Completion.findAll({
       attributes: [
-        [Completion.sequelize!.fn('DATE_FORMAT', Completion.sequelize!.col('createdAt'), '%Y-%m'), 'month'],
+        [Completion.sequelize!.fn('TO_CHAR', Completion.sequelize!.col('createdAt'), 'YYYY-MM'), 'month'],
         [Completion.sequelize!.fn('COUNT', Completion.sequelize!.col('id')), 'completions']
       ],
       where: {
@@ -85,14 +96,14 @@ export const getStats = async (req: Request, res: Response) => {
           [Op.gte]: sixMonthsAgo
         }
       },
-      group: [Completion.sequelize!.fn('DATE_FORMAT', Completion.sequelize!.col('createdAt'), '%Y-%m')],
-      order: [[Completion.sequelize!.fn('DATE_FORMAT', Completion.sequelize!.col('createdAt'), '%Y-%m'), 'ASC']],
+      group: [Completion.sequelize!.fn('TO_CHAR', Completion.sequelize!.col('createdAt'), 'YYYY-MM')],
+      order: [[Completion.sequelize!.fn('TO_CHAR', Completion.sequelize!.col('createdAt'), 'YYYY-MM'), 'ASC']],
       raw: true
     });
 
     const monthlyValidations = await Validacion.findAll({
       attributes: [
-        [Validacion.sequelize!.fn('DATE_FORMAT', Validacion.sequelize!.col('createdAt'), '%Y-%m'), 'month'],
+        [Validacion.sequelize!.fn('TO_CHAR', Validacion.sequelize!.col('createdAt'), 'YYYY-MM'), 'month'],
         [Validacion.sequelize!.fn('COUNT', Validacion.sequelize!.col('id')), 'validations']
       ],
       where: {
@@ -100,8 +111,8 @@ export const getStats = async (req: Request, res: Response) => {
           [Op.gte]: sixMonthsAgo
         }
       },
-      group: [Validacion.sequelize!.fn('DATE_FORMAT', Validacion.sequelize!.col('createdAt'), '%Y-%m')],
-      order: [[Validacion.sequelize!.fn('DATE_FORMAT', Validacion.sequelize!.col('createdAt'), '%Y-%m'), 'ASC']],
+      group: [Validacion.sequelize!.fn('TO_CHAR', Validacion.sequelize!.col('createdAt'), 'YYYY-MM')],
+      order: [[Validacion.sequelize!.fn('TO_CHAR', Validacion.sequelize!.col('createdAt'), 'YYYY-MM'), 'ASC']],
       raw: true
     });
 
@@ -129,6 +140,8 @@ export const getStats = async (req: Request, res: Response) => {
       });
     }
 
+    console.log('✅ Estadísticas mensuales generadas');
+
     // Estadísticas por estado de formatos
     const formatsByStatus = await Format.findAll({
       attributes: [
@@ -139,10 +152,21 @@ export const getStats = async (req: Request, res: Response) => {
       raw: true
     });
 
+    console.log('✅ Formatos por estado:', formatsByStatus);
+
     // Formatear actividad reciente
     const formattedRecentActivity = recentActivity.map((activity: any) => ({
-      type: `Nuevo diligenciamiento: ${activity.Format?.titulo || 'Sin título'}`,
-      createdAt: activity.createdAt
+      type: 'completion',
+      estado: activity.estado,
+      formatTitle: activity.Format?.titulo || 'Sin título',
+      userName: activity.User?.name || 'Usuario desconocido',
+      createdAt: new Date(activity.createdAt).toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     }));
 
     res.json({
@@ -156,9 +180,14 @@ export const getStats = async (req: Request, res: Response) => {
       recentActivity: formattedRecentActivity,
       monthlyStats
     });
-  } catch (error) {
-    console.error('Error getting stats:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+  } catch (error: any) {
+    console.error('❌ Error getting stats:', error);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 

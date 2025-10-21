@@ -17,6 +17,9 @@ export interface Stats {
   formatsByStatus: Array<{ estado: string; count: number }>;
   recentActivity: Array<{
     type: string;
+    estado: string;
+    formatTitle: string;
+    userName: string;
     createdAt: string;
   }>;
   monthlyStats: Array<{ month: string; completions: number; validations: number }>;

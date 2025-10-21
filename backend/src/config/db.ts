@@ -6,7 +6,7 @@ dotenv.config();
 export const sequelize = new Sequelize(
   process.env.DB_NAME || "formatosdb",
   process.env.DB_USER || "postgres",
-  process.env.DB_PASSWORD || "",  // ⬅️ Cambia DB_PASS por DB_PASSWORD
+  process.env.DB_PASSWORD || "admin",  // ⬅️ Cambia DB_PASS por DB_PASSWORD
   {
     host: process.env.DB_HOST || "localhost",
     port: parseInt(process.env.DB_PORT || "5432"),
@@ -18,10 +18,10 @@ export const sequelize = new Sequelize(
 export const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log("✅ Conectado a MySQL");
+    console.log("✅ Conectado a PostgreSQL");
     // Sincronización movida a models/index.ts para evitar duplicación
   } catch (error) {
-    console.error("❌ Error al conectar a MySQL:", error);
+    console.error("❌ Error al conectar a PostgreSQL:", error);
     throw error;
   }
 };
